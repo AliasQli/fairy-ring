@@ -1,0 +1,41 @@
+{
+    "qq": {
+        "id": 1234567890,
+        "onebot": {
+            "remote_url": "ws://localhost:6700",
+            "access_token": ""
+        }
+    },
+    "matrix": {
+        "prefix": "@fairy_",
+        "appservice": {
+            "homeserverUrl": "http://localhost:8008",
+            "domain": "localhost",
+            "registration": "slack-registration.yaml"
+        }
+    },
+    "forward": {
+        "qq": [
+            {
+                "id": 1234567890,
+                "to": [
+                    {
+                        "type": "matrix",
+                        "id": ""
+                    }
+                ]
+            }
+        ],
+        "matrix": [
+            {
+                "id": "",
+                "to": [
+                    {
+                        "qq": "matrix",
+                        "id": 1234567890
+                    }
+                ]
+            }
+        ]
+    }
+}

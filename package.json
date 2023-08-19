@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "matrix-appservice-bridge": "^9.0.1",
+    "onebot-client": "^1.1.1"
+  }
+}
