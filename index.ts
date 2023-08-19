@@ -1,5 +1,5 @@
 import { Cli, Bridge, AppServiceRegistration } from "matrix-appservice-bridge";
-import { Client } from "onebot-client";
+import { Client, GroupMessage } from "onebot-client";
 
 const config = require("./config.json");
 
@@ -7,13 +7,48 @@ let bridge: Bridge;
 
 const client = new Client(config.qq.id, config.qq.onebot);
 
+function qqNumberToMxId(id: number): string {
+    // TODO
+    // if (id === config.qq.id) {
+    return config.matrix.prefix + id.toString() + ":" + config.matrix.appservice.domain;
+}
+
 for (let from of config.forward.qq) {
     for (let to of from.to) {
         if (to.type === "matrix") {
             client.pickGroup(from.id).on("message", (event) => {
                 if (event.sender.user_id !== config.qq.id) {
-                    const intent = bridge.getIntent(config.matrix.prefix + event.sender.user_id.toString() + ":" + config.matrix.appservice.domain);
-                    intent.sendMessage(to.id, undefined);
+                    const intent = bridge.getIntent(qqNumberToMxId(event.sender.user_id));
+
+                    let content: Record<string, unknown> = { msgtype: "m.text", format: "org.matrix.custom.html", body: "", formatted_body: "" };
+                    if (typeof event.source !== "undefined") {
+                        const msg = event.source.message as string;
+                        const replied = qqNumberToMxId(event.source.user_id);
+                        content.body += `> <${replied}>: ${msg}"\n\n`;
+                        content.formatted_body += `<mx-reply><blockquote><a href=\"https://matrix.to/#/${to.id}\">In reply to</a> <a href=\"https://matrix.to/#/${replied}\">${replied}</a><br />${msg}</blockquote></mx-reply>`;
+                    }
+                    for (let elem of event.message) {
+                        switch (elem.type) {
+                            case "text": {
+                                content.body += elem.text;
+                                content.formatted_body += elem.text;
+                                break;
+                            }
+                            case "at": {
+                                if (elem.qq === "all") {
+                                    content.body += `@room `;
+                                    content.formatted_body += `@room `;
+                                } else {
+                                    const user = qqNumberToMxId(elem.qq);
+                                    content.body += `${user}`;
+                                    content.formatted_body += `<a href=\"https://matrix.to/#/${user}\">${user}</a>`;
+                                }
+                                break;
+                            }
+                            default: continue;
+                        }
+                    }
+                    intent.sendMessage(to.id, content);
                 }
             })
         } else {
@@ -52,7 +87,7 @@ const cli = new Cli({
                         }
                         for (let to of from.to) {
                             if (to.type === "qq") {
-                                client.pickGroup(to.id).sendMsg(undefined);
+                                client.pickGroup(to.id).sendMsg(event.sender + ":" + event.content.body as string);
                             } else {
                                 console.warn("Unsupported platform: %s", to.type);
                             }
